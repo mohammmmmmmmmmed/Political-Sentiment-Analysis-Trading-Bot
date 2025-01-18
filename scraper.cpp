@@ -50,34 +50,43 @@ std::string get_site_name(const std::string& url) {
 // Function to validate and correct Reddit URLs
 std::string validate_reddit_url(const std::string& url) {
     std::string corrected_url = url;
-    
-    // Add https:// if missing
-    if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos) {
-        corrected_url = "https://" + url;
+
+    // Check if the URL is a Reddit URL
+    std::regex reddit_regex("^(https?://)?(www\\.)?reddit\\.com");
+    if (std::regex_search(url, reddit_regex)) {
+        // Add https:// if missing
+        if (url.find("http://") == std::string::npos && url.find("https://") == std::string::npos) {
+            corrected_url = "https://" + url;
+        }
+
+        // Convert www.reddit.com to old.reddit.com
+        corrected_url = std::regex_replace(corrected_url, reddit_regex, "$1old.reddit.com");
     }
-    
-    // Convert www.reddit.com to old.reddit.com
-    std::regex reddit_regex("(https?://)(www\\.)?reddit\\.com");
-    corrected_url = std::regex_replace(corrected_url, reddit_regex, "$1old.reddit.com");
-    
+
     return corrected_url;
+}
+
+// Function to check if a URL is a Reddit or old.reddit.com link
+bool is_reddit_url(const std::string& url) {
+    std::regex reddit_regex("^(https?://)?(www\\.)?(old\\.)?reddit\\.com");
+    return std::regex_search(url, reddit_regex);
 }
 
 // Function to check if URL is a subreddit landing page
 bool is_subreddit_landing(const std::string& url) {
-    std::regex subreddit_regex("https?://old\\.reddit\\.com/r/[^/]+/?$");
+    std::regex subreddit_regex("https?://(?:www\\.)?(?:old\\.)?reddit\\.com/r/[^/]+/?$");
     return std::regex_match(url, subreddit_regex);
 }
 
 // Function to check if URL is a post
 bool is_post(const std::string& url) {
-    std::regex post_regex("https?://old\\.reddit\\.com/r/[^/]+/comments/[^/]+/[^/]+/?");
+    std::regex post_regex("https?://(?:www\\.)?(?:old\\.)?reddit\\.com/r/[^/]+/comments/[^/]+/[^/]+/?");
     return std::regex_match(url, post_regex);
 }
 
 // Function to extract subreddit name from URL
 std::string extract_subreddit_name(const std::string& url) {
-    std::regex subreddit_regex("https?://old\\.reddit\\.com/r/([^/]+)");
+    std::regex subreddit_regex("https?://(?:www\\.)?(?:old\\.)?reddit\\.com/r/([^/]+)");
     std::smatch matches;
     if (std::regex_search(url, matches, subreddit_regex)) {
         return matches[1].str();
@@ -134,13 +143,12 @@ std::string get_request(const std::string& url) {
 
 bool save_content(const std::string& content, const std::string& url, const std::string& base_folder) {
     std::string site_name = get_site_name(url);
-    std::string subreddit = extract_subreddit_name(url); // Extract subreddit name
     std::string timestamp = get_timestamp();
     fs::path folder_path = fs::path(base_folder) / timestamp;
     fs::create_directories(folder_path);
 
-    // Include subreddit name in the file name
-    std::string filename = (folder_path / (subreddit + "_" + site_name + "_" + std::to_string(std::time(nullptr)) + ".html")).string();
+    // Include site name in the file name
+    std::string filename = (folder_path / (site_name + "_" + std::to_string(std::time(nullptr)) + ".html")).string();
     
     try {
         std::ofstream outfile(filename);
@@ -303,7 +311,7 @@ std::vector<std::string> extract_links_from_html(const std::string& html_content
 
 std::vector<std::string> filter_post_links(const std::vector<std::string>& links, const std::string& subreddit) {
     std::vector<std::string> post_links;
-    std::regex post_regex("https?://(?:www\\.)?old\\.reddit\\.com/r/" + subreddit + "/comments/[^/]+/[^/]+/?");
+    std::regex post_regex("https?://(?:www\\.)?(?:old\\.)?reddit\\.com/r/" + subreddit + "/comments/[^/]+/[^/]+/?");
 
     for (const auto& link : links) {
         if (std::regex_match(link, post_regex)) {
@@ -522,6 +530,9 @@ void scrape_links(const std::string& base_folder, const std::string& csv_folder)
 int main() {
     std::vector<std::string> sites = {
         "https://old.reddit.com/r/wallstreetbets/",
+        "https://www.bloomberg.com/",
+        "https://twitter.com/",
+        "https://www.nasdaq.com/"
     };
     
     std::string base_folder = "html_docs";
@@ -558,10 +569,6 @@ int main() {
                 
                 for (const auto& site : sites) {
                     std::string validated_url = validate_reddit_url(site);
-                    if (!is_subreddit_landing(validated_url) && !is_post(validated_url)) {
-                        std::cerr << "URL is not a subreddit landing page or a post: " << validated_url << std::endl;
-                        continue;
-                    }
                     
                     std::cout << "\nProcessing " << validated_url << "..." << std::endl;
                     
