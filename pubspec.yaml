@@ -1,0 +1,49 @@
+name: trading_bot
+description: A political sentiment analysis trading application.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=2.19.0 <3.0.0"
+
+dependencies:
+  cupertino_icons: ^1.0.2
+  fl_chart: ^0.70.1
+  flutter:
+    sdk: flutter
+  flutter_animate: ^4.5.2
+  flutter_local_notifications: ^18.0.1
+  flutter_typeahead: ^5.2.0
+  http: ^1.3.0
+  interactive_chart: ^0.3.5
+  intl: ^0.18.0
+  path_provider: ^2.1.5
+  provider: ^6.1.1
+  shared_preferences: ^2.5.2
+  shimmer: ^3.0.0
+  syncfusion_flutter_gauges: ^22.1.40
+
+dev_dependencies:
+  flutter_lints: ^2.0.1
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+  fonts:
+    - family: Ubuntu
+      fonts:
+        - asset: assets/fonts/Ubuntu-Regular.ttf
+        - asset: assets/fonts/Ubuntu-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Ubuntu-Bold.ttf
+          weight: 700
+
+  assets:
+    - assets/images/
+    - assets/fonts/Ubuntu-Regular.ttf
+    - assets/fonts/Ubuntu-Medium.ttf
+    - assets/fonts/Ubuntu-Bold.ttf
+
+# api keys: VFFWYEE3C54S3TY2
