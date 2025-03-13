@@ -8,7 +8,236 @@
 #include <cctype>
 #include <map>
 
-// ... [rest of the code remains the same until the main function]
+
+// Function to split a string by a delimiter
+std::vector<std::string> split(const std::string& str, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream tokenStream(str);
+    while (std::getline(tokenStream, token, delimiter)) {
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
+// Function to convert a string to lowercase
+std::string toLowerCase(const std::string& str) {
+    std::string lowerStr = str;
+    std::transform(lowerStr.begin(), lowerStr.end(), lowerStr.begin(), ::tolower);
+    return lowerStr;
+}
+
+// Function to extract a quoted comment from a CSV line
+std::string extractQuotedComment(const std::string& line) {
+    size_t start = line.find('"'); // Find the first quote
+    if (start == std::string::npos) {
+        return line; // If no quotes, return the whole line
+    }
+    size_t end = line.find('"', start + 1); // Find the closing quote
+    if (end == std::string::npos) {
+        return line.substr(start + 1); // If no closing quote, return the rest of the line
+    }
+    return line.substr(start + 1, end - start - 1); // Extract the quoted text
+}
+
+// VADER-like sentiment analysis
+struct VaderSentiment {
+    double positiveScore = 0.0;
+    double negativeScore = 0.0;
+    double neutralScore = 0.0;
+
+    void updateScores(const std::string& word, const std::map<std::string, double>& lexicon) {
+        static double amplifier = 1.0; // Reset amplifier for each word
+        if (word == "not") {
+            amplifier = -1.0; // Negate the next word's score
+            return;
+        } else if (word == "very") {
+            amplifier = 1.5; // Amplify the next word's score
+            return;
+        }
+
+        double score = 0.0;
+        if (lexicon.find(word) != lexicon.end()) {
+            score = lexicon.at(word) * amplifier;
+        } else {
+            // Assign a small default score for unknown words
+            score = amplifier * (word.size() > 5 ? 0.1 : -0.1); // Heuristic for unknown words
+        }
+
+        if (score > 0) {
+            positiveScore += score;
+        } else if (score < 0) {
+            negativeScore += score;
+        } else {
+            neutralScore += 1.0;
+        }
+        amplifier = 1.0; // Reset amplifier after applying it
+    }
+
+    double computeCompoundScore() const {
+        double totalScore = positiveScore + negativeScore + neutralScore;
+        double denominator = fabs(positiveScore) + fabs(negativeScore) + neutralScore + 1e-6;
+        return tanh(totalScore / denominator); // Use tanh to limit the range to [-1, 1]
+    }
+};
+
+// TextBlob-like sentiment analysis
+struct TextBlobSentiment {
+    double polarity = 0.0;
+    double subjectivity = 0.0;
+
+    void analyze(const std::string& text, const std::map<std::string, double>& polarityLexicon,
+                 const std::map<std::string, double>& subjectivityLexicon) {
+        std::vector<std::string> words = split(toLowerCase(text), ' ');
+        for (const auto& word : words) {
+            if (polarityLexicon.find(word) != polarityLexicon.end()) {
+                polarity += polarityLexicon.at(word);
+            } else {
+                polarity += (word.size() > 5 ? 0.1 : -0.1); // Default heuristic for unknown words
+            }
+            if (subjectivityLexicon.find(word) != subjectivityLexicon.end()) {
+                subjectivity += subjectivityLexicon.at(word);
+            } else {
+                subjectivity += 0.1; // Default heuristic for unknown words
+            }
+        }
+        polarity /= words.size() + 1e-6;
+        subjectivity /= words.size() + 1e-6;
+    }
+};
+
+// Random Forest-like predictive model
+class RandomForest {
+private:
+    struct DecisionTree {
+        std::map<std::string, double> weights;
+
+        double predict(const std::map<std::string, int>& features) const {
+            double score = 0.0;
+            for (const auto& [feature, value] : features) {
+                if (weights.find(feature) != weights.end()) {
+                    score += weights.at(feature) * value;
+                }
+            }
+            return score;
+        }
+
+        void updateWeights(const std::map<std::string, int>& features, double error, double learningRate) {
+            for (const auto& [feature, value] : features) {
+                if (weights.find(feature) != weights.end()) {
+                    weights[feature] -= learningRate * error * value;
+                }
+            }
+        }
+    };
+
+    std::vector<DecisionTree> trees;
+
+public:
+    explicit RandomForest(int numTrees) {
+        trees.resize(numTrees);
+    }
+
+    void train(const std::map<std::string, double>& lexicon) {
+        for (auto& tree : trees) {
+            for (const auto& [word, score] : lexicon) {
+                if (score > 0) {
+                    tree.weights[word] = score * 0.8; // Positive weight
+                } else if (score < 0) {
+                    tree.weights[word] = score * 0.8; // Negative weight
+                }
+            }
+        }
+    }
+
+    double predict(const std::map<std::string, int>& features) const {
+        double score = 0.0;
+        for (const auto& tree : trees) {
+            score += tree.predict(features);
+        }
+        return score / trees.size();
+    }
+
+    void updateWeights(const std::map<std::string, int>& features, double trueSentiment, double predictedSentiment, double learningRate) {
+        double error = predictedSentiment - trueSentiment;
+        for (auto& tree : trees) {
+            tree.updateWeights(features, error, learningRate);
+        }
+    }
+};
+
+// LSTM-like recurrent neural network
+class SimpleLSTM {
+private:
+    double hiddenState = 0.0;
+    double weightInput = 0.5;
+    double weightHidden = 0.5;
+
+public:
+    double processSequence(const std::vector<double>& inputs) {
+        for (double input : inputs) {
+            hiddenState = tanh(weightInput * input + weightHidden * hiddenState);
+        }
+        return hiddenState;
+    }
+};
+
+// Struct to hold sentiment result
+struct SentimentResult {
+    double finalScore;
+    std::string interpretation;
+    double confidenceFactor;
+    std::map<std::string, double> componentContributions;
+};
+
+// Function to calculate weighted sentiment
+SentimentResult calculateWeightedSentiment(double vaderScore, double textblobPolarity,
+                                           double textblobSubjectivity, double randomForestPred,
+                                           double lstmOutput) {
+    double adjustedVaderScore = 2.0 / (1.0 + exp(-vaderScore)) - 1.0;
+    double maxRFValue = 1.0;
+    double maxLSTMValue = 1.0;
+    double normalizedRFPrediction = randomForestPred / maxRFValue;
+    double normalizedLSTMOutput = lstmOutput / maxLSTMValue;
+
+    double vaderWeight = 0.35;
+    double textblobPolWeight = 0.15;
+    double rfWeight = 0.25;
+    double lstmWeight = 0.25;
+
+    double sentimentScore = (
+        adjustedVaderScore * vaderWeight +
+        textblobPolarity * textblobPolWeight +
+        normalizedRFPrediction * rfWeight +
+        normalizedLSTMOutput * lstmWeight
+    );
+
+    double confidenceFactor = 1.0 - (textblobSubjectivity * 0.5) + fabs(adjustedVaderScore) * 0.5;
+    double finalScore = std::max(std::min(sentimentScore * confidenceFactor, 1.0), -1.0);
+
+    std::string interpretation;
+    if (finalScore <= -0.7) {
+        interpretation = "Strongly Bearish";
+    } else if (finalScore <= -0.3) {
+        interpretation = "Bearish";
+    } else if (finalScore < 0.1) {
+        interpretation = "Neutral";
+    } else if (finalScore < 0.5) {
+        interpretation = "Bullish";
+    } else {
+        interpretation = "Strongly Bullish";
+    }
+
+    std::map<std::string, double> componentContributions = {
+        {"vader", adjustedVaderScore * vaderWeight},
+        {"textblob", textblobPolarity * textblobPolWeight},
+        {"random_forest", normalizedRFPrediction * rfWeight},
+        {"lstm", normalizedLSTMOutput * lstmWeight}
+    };
+
+    return SentimentResult{finalScore, interpretation, confidenceFactor, componentContributions};
+}
+
 
 int main() {
     // Define lexicons for VADER and TextBlob
