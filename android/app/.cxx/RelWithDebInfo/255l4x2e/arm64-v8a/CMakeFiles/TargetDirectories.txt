@@ -1,0 +1,2 @@
+C:/Users/sange/trading_bot/android/app/.cxx/RelWithDebInfo/255l4x2e/arm64-v8a/CMakeFiles/edit_cache.dir
+C:/Users/sange/trading_bot/android/app/.cxx/RelWithDebInfo/255l4x2e/arm64-v8a/CMakeFiles/rebuild_cache.dir

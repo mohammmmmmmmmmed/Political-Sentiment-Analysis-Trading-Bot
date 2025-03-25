@@ -8,6 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:trading_bot/routes/app_routes.dart';
+import 'package:trading_bot/screens/prediction_analysis_screen.dart';
 
 // Define the CandleData class first so it can be used throughout the file
 class CandleData {
@@ -295,7 +297,7 @@ class _SwipeableStockRowState extends State<SwipeableStockRow> {
           height: 8,
           decoration: BoxDecoration(
             color: _currentPage == index
-                ? const Color(0xFF6C5CE7)
+                ? const Color(0xFF2C3E50)
                 : Colors.grey.shade300,
             borderRadius: BorderRadius.circular(4),
           ),
@@ -330,7 +332,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Notifications'),
-        backgroundColor: const Color(0xFF6C5CE7),
+        backgroundColor: const Color(0xFF2C3E50),
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -404,10 +406,10 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   child: ListTile(
                     contentPadding: const EdgeInsets.all(16),
                     leading: CircleAvatar(
-                      backgroundColor: const Color(0xFF6C5CE7).withOpacity(0.1),
+                      backgroundColor: const Color(0xFF2C3E50).withOpacity(0.1),
                       child: const Icon(
                         Icons.notifications_outlined,
-                        color: Color(0xFF6C5CE7),
+                        color: Color(0xFF2C3E50),
                       ),
                     ),
                     title: Text(
@@ -467,7 +469,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> with TickerProviderStateMixin {
   // Colors
-  final Color primaryColor = const Color(0xFF6C5CE7);
+  final Color primaryColor = const Color(0xFF2C3E50);
   final Color secondaryColor = const Color(0xFFFF00FF);
   final Color accentColor = const Color(0xFF39FF14);
   final Color backgroundColor = const Color(0xFFF8F9FA);
@@ -725,7 +727,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       priority: Priority.high,
       enableVibration: true,
       enableLights: true,
-      ledColor: Color(0xFF6C5CE7),
+      ledColor: Color(0xFF2C3E50),
       ledOnMs: 1000,
       ledOffMs: 500,
     );
@@ -1396,7 +1398,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                   child: Icon(
                     Icons.person,
                     size: 40,
-                    color: Color(0xFF6C5CE7),
+                    color: Color(0xFF2C3E50),
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -1437,13 +1439,14 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             },
           ),
           ListTile(
-            leading: const Icon(Icons.bar_chart),
-            title: const Text('Prediction Analysis'),
-            onTap: () {
-              Navigator.pop(context);
-              // Navigate to prediction using sentimental analysis
-            },
-          ),
+  leading: const Icon(Icons.bar_chart),
+  title: const Text('Prediction Analysis'),
+  onTap: () {
+    print('Prediction Analysis tapped'); // Debug log
+    Navigator.pop(context); // Close the drawer (if applicable)
+    Navigator.pushNamed(context, AppRoutes.predictionAnalysis); // Navigate to PredictionAnalysisScreen
+  },
+),
           ListTile(
             leading: const Icon(Icons.notifications_outlined),
             title: const Text('Notifications'),
@@ -1475,22 +1478,22 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
             },
           ),
           const Divider(),
-          ListTile(
-            leading: const Icon(Icons.settings_outlined),
-            title: const Text('Settings'),
-            onTap: () {
-              Navigator.pop(context);
-              // Navigate to settings
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.help_outline),
-            title: const Text('Help & Support'),
-            onTap: () {
-              Navigator.pop(context);
-              // Navigate to help
-            },
-          ),
+          // ListTile(
+          //   leading: const Icon(Icons.settings_outlined),
+          //   title: const Text('Settings'),
+          //   onTap: () {
+          //     Navigator.pop(context);
+          //     // Navigate to settings
+          //   },
+          // ),
+          // ListTile(
+          //   leading: const Icon(Icons.help_outline),
+          //   title: const Text('Help & Support'),
+          //   onTap: () {
+          //     Navigator.pop(context);
+          //     // Navigate to help
+          //   },
+          // ),
           ListTile(
             leading: const Icon(Icons.logout),
             title: const Text('Logout'),
@@ -1704,30 +1707,30 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       _tabController.animateTo(0);
                     },
                   ),
-                  _buildQuickActionItem(
-                    icon: Icons.compare_arrows,
-                    label: 'Compare',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Show compare stocks UI
-                    },
-                  ),
-                  _buildQuickActionItem(
-                    icon: Icons.notifications_active_outlined,
-                    label: 'Set Alert',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Show set alert UI
-                    },
-                  ),
-                  _buildQuickActionItem(
-                    icon: Icons.share_outlined,
-                    label: 'Share',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Show share options
-                    },
-                  ),
+                  // _buildQuickActionItem(
+                  //   icon: Icons.compare_arrows,
+                  //   label: 'Compare',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     // Show compare stocks UI
+                  //   },
+                  // ),
+                  // _buildQuickActionItem(
+                  //   icon: Icons.notifications_active_outlined,
+                  //   label: 'Set Alert',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     // Show set alert UI
+                  //   },
+                  // ),
+                  // _buildQuickActionItem(
+                  //   icon: Icons.share_outlined,
+                  //   label: 'Share',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     // Show share options
+                  //   },
+                  // ),
                   _buildQuickActionItem(
                     icon: Icons.analytics_outlined,
                     label: 'Analysis',
@@ -1736,14 +1739,14 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
                       // Show analysis UI
                     },
                   ),
-                  _buildQuickActionItem(
-                    icon: Icons.settings_outlined,
-                    label: 'Settings',
-                    onTap: () {
-                      Navigator.pop(context);
-                      // Navigate to settings
-                    },
-                  ),
+                  // _buildQuickActionItem(
+                  //   icon: Icons.settings_outlined,
+                  //   label: 'Settings',
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     // Navigate to settings
+                  //   },
+                  // ),
                 ],
               ),
             ),
@@ -2049,7 +2052,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       data: isDarkMode ? ThemeData.dark().copyWith(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C5CE7),
+          seedColor: const Color(0xFF2C3E50),
           brightness: Brightness.dark,
         ),
         scaffoldBackgroundColor: const Color(0xFF121212),
@@ -2063,7 +2066,7 @@ class _DashboardScreenState extends State<DashboardScreen> with TickerProviderSt
       ) : ThemeData.light().copyWith(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF6C5CE7),
+          seedColor: const Color(0xFF2C3E50),
           brightness: Brightness.light,
         ),
         scaffoldBackgroundColor: const Color(0xFFF8F9FA),

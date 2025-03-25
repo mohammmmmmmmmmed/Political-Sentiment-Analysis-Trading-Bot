@@ -8,6 +8,7 @@ environment:
 
 dependencies:
   cupertino_icons: ^1.0.2
+  ffi: ^2.1.4
   fl_chart: ^0.70.1
   flutter:
     sdk: flutter
@@ -24,6 +25,7 @@ dependencies:
   syncfusion_flutter_gauges: ^22.1.40
 
 dev_dependencies:
+  ffigen: ^18.0.0
   flutter_lints: ^2.0.1
   flutter_test:
     sdk: flutter

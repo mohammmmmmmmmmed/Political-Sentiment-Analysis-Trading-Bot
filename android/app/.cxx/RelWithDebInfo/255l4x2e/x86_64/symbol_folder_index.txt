@@ -1,0 +1,1 @@
+C:\Users\sange\trading_bot\build\app\intermediates\cxx\RelWithDebInfo\255l4x2e\obj\x86_64
