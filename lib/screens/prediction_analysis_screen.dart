@@ -1,9 +1,12 @@
+// lib/screens/prediction_analysis_screen.dart
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:trading_bot/models/sentiment_result.dart';
 import 'package:trading_bot/providers/stock_prediction_provider.dart';
+import 'package:trading_bot/services/news_service.dart';
+import 'package:trading_bot/widgets/sentiment_trend_chart.dart';
 
 class PredictionAnalysisScreen extends StatefulWidget {
   const PredictionAnalysisScreen({Key? key}) : super(key: key);
@@ -12,40 +15,42 @@ class PredictionAnalysisScreen extends StatefulWidget {
   _PredictionAnalysisScreenState createState() => _PredictionAnalysisScreenState();
 }
 
-class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> {
+class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> with SingleTickerProviderStateMixin {
   final _formKey = GlobalKey<FormState>();
   final _priceController = TextEditingController();
+  late TabController _tabController;
+  
   final List<String> _stockSymbols = [
     "RELIANCE.BSE",
-        "TCS.BSE",
-        "HDFCBANK.BSE",
-        "INFY.BSE",
-        "ICICIBANK.BSE",
-        "KOTAKBANK.BSE",
-        "HINDUNILVR.BSE",
-        "ITC.BSE",
-        "SBIN.BSE",
-        "AXISBANK.BSE",
-        "BAJFINANCE.BSE",
-        "BHARTIARTL.BSE",
-        "LT.BSE",
-        "MARUTI.BSE",
-        "ASIANPAINT.BSE",
-        "HCLTECH.BSE",
-        "WIPRO.BSE",
-        "ONGC.BSE",
-        "NTPC.BSE",
-        "POWERGRID.BSE",
-        "SUNPHARMA.BSE",
-        "TATAMOTORS.BSE",
-        "ULTRACEMCO.BSE",
-        "TECHM.BSE",
-        "NESTLEIND.BSE",
-        "BAJAJFINSV.BSE",
-        "DRREDDY.BSE",
-        "ADANIPORTS.BSE",
-        "TITAN.BSE",
-        "JSWSTEEL.BSE",
+    "TCS.BSE",
+    "HDFCBANK.BSE",
+    "INFY.BSE",
+    "ICICIBANK.BSE",
+    "KOTAKBANK.BSE",
+    "HINDUNILVR.BSE",
+    "ITC.BSE",
+    "SBIN.BSE",
+    "AXISBANK.BSE",
+    "BAJFINANCE.BSE",
+    "BHARTIARTL.BSE",
+    "LT.BSE",
+    "MARUTI.BSE",
+    "ASIANPAINT.BSE",
+    "HCLTECH.BSE",
+    "WIPRO.BSE",
+    "ONGC.BSE",
+    "NTPC.BSE",
+    "POWERGRID.BSE",
+    "SUNPHARMA.BSE",
+    "TATAMOTORS.BSE",
+    "ULTRACEMCO.BSE",
+    "TECHM.BSE",
+    "NESTLEIND.BSE",
+    "BAJAJFINSV.BSE",
+    "DRREDDY.BSE",
+    "ADANIPORTS.BSE",
+    "TITAN.BSE",
+    "JSWSTEEL.BSE",
   ];
 
   // Updated color scheme
@@ -56,8 +61,15 @@ class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> {
   final Color _cardColor = Colors.white;
 
   @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  @override
   void dispose() {
     _priceController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -92,21 +104,45 @@ class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> {
             iconTheme: const IconThemeData(color: Colors.white),
           ),
           body: SafeArea(
-            child: SingleChildScrollView(
-              physics: const BouncingScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSelectionForm(context, provider),
-                  if (provider.isLoading)
-                    _buildLoadingState(),
-                  if (provider.error != null)
-                    _buildErrorState(provider),
-                  if (!provider.isLoading && provider.sentimentResult != null)
-                    _buildResultsSection(context, provider),
-                  const SizedBox(height: 24), // Bottom padding for scrolling
-                ],
-              ),
+            child: Column(
+              children: [
+                _buildSelectionForm(context, provider),
+                if (provider.isLoading)
+                  _buildLoadingState()
+                else if (provider.error != null)
+                  _buildErrorState(provider)
+                else if (provider.sentimentResult != null)
+                  Expanded(
+                    child: Column(
+                      children: [
+                        TabBar(
+                          controller: _tabController,
+                          labelColor: _primaryColor,
+                          unselectedLabelColor: Colors.grey,
+                          indicatorColor: _accentColor,
+                          tabs: const [
+                            Tab(text: 'Analysis'),
+                            Tab(text: 'Trends'),
+                            Tab(text: 'News'),
+                          ],
+                        ),
+                        Expanded(
+                          child: TabBarView(
+                            controller: _tabController,
+                            children: [
+                              SingleChildScrollView(
+                                physics: const BouncingScrollPhysics(),
+                                child: _buildResultsSection(context, provider),
+                              ),
+                              _buildTrendsSection(context, provider),
+                              _buildNewsSection(context, provider),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
             ),
           ),
         );
@@ -251,10 +287,10 @@ class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> {
   }
 
   Widget _buildLoadingState() {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 32),
+    return Expanded(
       child: Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
@@ -276,34 +312,48 @@ class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> {
   }
 
   Widget _buildErrorState(StockPredictionProvider provider) {
-    return Container(
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFFDEDED),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE57373)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Icon(
-            Icons.error_outline,
-            color: Color(0xFFD32F2F),
-            size: 24,
+    return Expanded(
+      child: Center(
+        child: Container(
+          margin: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFDEDED),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE57373)),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Text(
-              provider.error!,
-              style: const TextStyle(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline,
                 color: Color(0xFFD32F2F),
-                fontSize: 15,
-                height: 1.5,
+                size: 48,
               ),
-            ),
+              const SizedBox(height: 16),
+              Text(
+                provider.error!,
+                style: const TextStyle(
+                  color: Color(0xFFD32F2F),
+                  fontSize: 16,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () {
+                  provider.analyzeSentiment();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _primaryColor,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Try Again'),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -315,19 +365,8 @@ class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
-          child: Text(
-            'Sentiment Analysis Results',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 20,
-              color: _primaryColor,
-            ),
-          ),
-        ),
         Card(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          margin: const EdgeInsets.all(16),
           elevation: 4,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -498,12 +537,292 @@ class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> {
                 ),
                 const SizedBox(height: 16),
                 _buildSuggestionContainer(result.interpretation),
+                const SizedBox(height: 16),
+                Center(
+                  child: Text(
+                    'Real-time updates active',
+                    style: TextStyle(
+                      color: _accentColor,
+                      fontWeight: FontWeight.w500,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Center(
+                  child: Text(
+                    'Data refreshes automatically',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ),
       ],
     );
+  }
+
+  Widget _buildTrendsSection(BuildContext context, StockPredictionProvider provider) {
+    return provider.history.length < 2
+        ? Center(
+            child: Text(
+              'Not enough data for trend analysis.\nWait for more updates.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.grey.shade600,
+                fontSize: 16,
+              ),
+            ),
+          )
+        : SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                  child: Text(
+                    'Sentiment Trend Analysis',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      color: _primaryColor,
+                    ),
+                  ),
+                ),
+                Card(
+                  margin: const EdgeInsets.all(16),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  color: _cardColor,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sentiment Score Over Time',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                            color: _primaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 250,
+                          child: SentimentTrendChart(
+                            sentimentHistory: provider.history,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildLegendItem('Strongly Bearish', const Color(0xFFE74C3C)),
+                            const SizedBox(width: 16),
+                            _buildLegendItem('Bearish', const Color(0xFFE67E22)),
+                            const SizedBox(width: 16),
+                            _buildLegendItem('Neutral', const Color(0xFF95A5A6)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            _buildLegendItem('Bullish', const Color(0xFF2ECC71)),
+                            const SizedBox(width: 16),
+                            _buildLegendItem('Strongly Bullish', const Color(0xFF27AE60)),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+                  child: Text(
+                    'Recent Sentiment History',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      color: _primaryColor,
+                    ),
+                  ),
+                ),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: provider.history.length,
+                  reverse: true,
+                  itemBuilder: (context, index) {
+                    final historyItem = provider.history[provider.history.length - 1 - index];
+                    final sentimentColor = _getSentimentColor(historyItem.sentimentColor);
+                    
+                    return Card(
+                      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.all(16),
+                        leading: Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: sentimentColor.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Center(
+                            child: Text(
+                              historyItem.score.toStringAsFixed(1),
+                              style: TextStyle(
+                                color: sentimentColor,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          historyItem.interpretation,
+                          style: TextStyle(
+                            color: sentimentColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 8),
+                            Text(
+                              'Confidence: ${(historyItem.confidence * 100).toStringAsFixed(1)}%',
+                              style: const TextStyle(fontSize: 12),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              DateFormat('MMM dd, yyyy • HH:mm:ss').format(historyItem.timestamp),
+                              style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          );
+  }
+
+  Widget _buildNewsSection(BuildContext context, StockPredictionProvider provider) {
+    return provider.newsItems.isEmpty
+        ? Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.newspaper,
+                  size: 48,
+                  color: Colors.grey.shade400,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'No news available yet',
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
+          )
+        : ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: provider.newsItems.length,
+            itemBuilder: (context, index) {
+              final newsItem = provider.newsItems[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: _primaryColor.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              newsItem.source,
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: _primaryColor,
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            DateFormat('MMM dd • HH:mm').format(newsItem.timestamp),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        newsItem.title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        newsItem.content,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade800,
+                          height: 1.5,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            // Open news URL (in a real app)
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: _secondaryColor,
+                          ),
+                          child: const Text('Read More'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
   }
 
   Widget _buildSectionHeader(String title) {
@@ -524,6 +843,30 @@ class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> {
             fontWeight: FontWeight.w600,
             fontSize: 18,
             color: _primaryColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLegendItem(String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey.shade700,
           ),
         ),
       ],
@@ -580,105 +923,104 @@ class _PredictionAnalysisScreenState extends State<PredictionAnalysisScreen> {
     );
   }
 
-  Widget _buildSentimentComponentsChart(List<SentimentComponent> components) {
-    return Container(
-      height: 220,
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F7),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceBetween,
-          maxY: 0.5,
-          minY: -0.5,
-          groupsSpace: 16,
-          titlesData: FlTitlesData(
-            show: true,
-            rightTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            topTitles: const AxisTitles(
-              sideTitles: SideTitles(showTitles: false),
-            ),
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                getTitlesWidget: (value, meta) {
-                  if (value < 0 || value >= components.length) {
-                    return const SizedBox();
-                  }
-                  return Padding(
-                    padding: const EdgeInsets.only(top: 10.0),
-                    child: Text(
-                      components[value.toInt()].name,
-                      style: TextStyle(
-                        color: _primaryColor.withOpacity(0.8),
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 40,
-                getTitlesWidget: (value, meta) {
-                  return Text(
-                    value.toStringAsFixed(1),
+Widget _buildSentimentComponentsChart(List<SentimentComponent> components) {
+  return Container(
+    height: 220,
+    padding: const EdgeInsets.all(8),
+    decoration: BoxDecoration(
+      color: const Color(0xFFF5F5F7),
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceBetween,
+        maxY: 0.5,
+        minY: -0.5,
+        groupsSpace: 16,
+        titlesData: FlTitlesData(
+          show: true,
+          rightTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          topTitles: const AxisTitles(
+            sideTitles: SideTitles(showTitles: false),
+          ),
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (value, meta) {
+                if (value < 0 || value >= components.length) {
+                  return const SizedBox();
+                }
+                return Padding(
+                  padding: const EdgeInsets.only(top: 10.0),
+                  child: Text(
+                    components[value.toInt()].name,
                     style: TextStyle(
                       color: _primaryColor.withOpacity(0.8),
                       fontSize: 11,
                       fontWeight: FontWeight.w500,
                     ),
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
           ),
-          borderData: FlBorderData(show: false),
-          gridData: FlGridData(
-            show: true,
-            horizontalInterval: 0.1,
-            getDrawingHorizontalLine: (value) {
-              return FlLine(
-                color: Colors.grey.withOpacity(0.15),
-                strokeWidth: 1,
-              );
-            },
-          ),
-          barGroups: List.generate(components.length, (index) {
-            final component = components[index];
-            final isPositive = component.contribution >= 0;
-            return BarChartGroupData(
-              x: index,
-              barRods: [
-                BarChartRodData(
-                  toY: component.contribution,
-                  fromY: 0,
-                  color: isPositive 
-                    ? const Color(0xFF2ECC71).withOpacity(0.9) // Green
-                    : const Color(0xFFE74C3C).withOpacity(0.9), // Red
-                  width: 18,
-                  borderRadius: BorderRadius.vertical(
-                    top: const Radius.circular(6),
-                    bottom: const Radius.circular(6),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 40,
+              getTitlesWidget: (value, meta) {
+                return Text(
+                  value.toStringAsFixed(1),
+                  style: TextStyle(
+                    color: _primaryColor.withOpacity(0.8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
                   ),
-                ),
-              ],
-            );
-          }),
+                );
+              },
+            ),
+          ),
         ),
+        borderData: FlBorderData(show: false),
+        gridData: FlGridData(
+          show: true,
+          horizontalInterval: 0.1,
+          getDrawingHorizontalLine: (value) {
+            return FlLine(
+              color: Colors.grey.withOpacity(0.15),
+              strokeWidth: 1,
+            );
+          },
+        ),
+        barGroups: List.generate(components.length, (index) {
+          final component = components[index];
+          final isPositive = component.contribution >= 0;
+          return BarChartGroupData(
+            x: index,
+            barRods: [
+              BarChartRodData(
+                toY: component.contribution,
+                fromY: 0,
+                color: isPositive 
+                  ? const Color(0xFF2ECC71).withOpacity(0.9) // Green
+                  : const Color(0xFFE74C3C).withOpacity(0.9), // Red
+                width: 18,
+                borderRadius: BorderRadius.vertical(
+                  top: const Radius.circular(6),
+                  bottom: const Radius.circular(6),
+                ),
+              ),
+            ],
+          );
+        }),
       ),
-    );
-  }
-
+    ),
+  );
+}
   String _getInterpretationExplanation(SentimentResult result) {
-    final baseExplanation = 'Based on our sentiment analysis of recent news and social media discussions, ';
+    final baseExplanation = 'Based on our real-time sentiment analysis of news and social media discussions, ';
     
     if (result.interpretation == "Strongly Bearish") {
       return '$baseExplanation the market sentiment for this stock is extremely negative. This suggests potential downward pressure on the price in the near term. This analysis is based on ${(result.confidence * 100).toStringAsFixed(0)}% confidence from our sentiment models.';
